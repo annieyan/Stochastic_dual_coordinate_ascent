@@ -136,32 +136,16 @@ class RidgeRegression:
         
         count, dim = images.shape
         # mean centered the data
-        # images = images.astype(float)
+      
         mean_ = np.mean(images,axis=0) 
         images -= mean_ #[60000,728]
         # get covariance matrix
         U, s, V = np.linalg.svd(images, full_matrices=False)  # V[728,728]
-        # U, s, V = randomized_svd(images, 
-        #                       n_components=n_comp,
-        #                       n_iter=5,flip_sign=True,
-        #                       random_state=None)
-        # print("s",s[:n_comp])
-        # # Make a list of (eigenvalue, eigenvector) tuples
-        # eig_pairs = [(s[i], U[:,i]) for i in range(len(s))]
-        # print("U.shape",U.shape)
-        # # Sort the (eigenvalue, eigenvector) tuples from high to low
-        # eig_pairs.sort(key=lambda x: x[0], reverse=True)
-        # s = [x[0] for x in eig_pairs]
-        # print("s",s)
-        # U = np.array([x[1] for x in eig_pairs][:n_comp]).reshape(count,n_comp)
+        
         components_ = V
         self.components_ = components_[:n_comp]
         S = np.diag(s[:n_comp])  #[50,50]
         U = U[:, :n_comp]   #[60000,50]
-        # # U = np.array(eig_pairs[1][:n_comp]).reshape(count,n_comp)
-        # # U *= S    # [60000,50] [50,50]
-        # new = np.dot(U[:, :n_comp], np.dot(S, V[:,:n_comp].T))  #[60000,50],[50,50] [728,50]T
-        # U = np.dot(U,S)
         new = np.dot(images, self.components_.T)
         return new
 
@@ -182,20 +166,7 @@ class RidgeRegression:
         return h
 
 
-    '''
-    compute individual hi(x) for Random Fourier Features
-    input: an image in the form of a 50 dim vector 
-    return : hi(x) in i in 1,....k
-    '''
-    # def compute_h(self,image,bandwidth):
-    #     # draw 1 random vector of length 50
-    #     rand_sample = np.random.standard_normal(self.n_comp)
-    #     # print("random sample",image)
-    #     # rand_sample= np.expand_dims(rand_sample, axis=1)
-    #     temp = np.dot(image,rand_sample)  [1,50]*[50,]
-    #     # print("temp----",temp,type(temp))
-    #     h_i = math.sin(temp/bandwidth)
-    #     return h_i
+  
 
     '''
     randomly grab a few pairs of points and estimate the mean distance 
@@ -245,11 +216,6 @@ class RidgeRegression:
         n_samples = train_count
         print("fitting")
     
-        #feat_map_fourier = RBFSampler(gamma=0.02,n_components=30, random_state=1)
-        #fourier_approx_svm = pipeline.Pipeline([("feature_map", feat_map_fourier),
-        #                                ("svm", classifier)])
-        #fourier_approx_svm.fit(shuffled_images[:n_samples / 4], shuffled_labels[:n_samples / 4].flatten())
-        #classifier.fit(shuffled_images[:n_samples / 2], shuffled_labels[:n_samples / 2].flatten())
         classifier.fit(h_mat[:n_samples / 4], shuffled_labels[:n_samples / 4].flatten())
         # classifier.fit(self.train_pca, self.train_label)
 
@@ -257,18 +223,12 @@ class RidgeRegression:
         for i in range(0,self.test_count):
             # print("tranforming Fourier")
             h_test[i,:] = np.asarray(self.random_fourier(self.test_pca[i,:]))
-        #    h_test[i,:]= self.rbf.fit_transform(self.test_pca[i,:])
-        # h_test = self.rbf.fit_transform(self.test_pca)
-
-        #h_test = rbf_model.transform(self.test_pca)
+      
         expected = self.test_label.flatten()
 
         # expected = self.test_label
         predicted = classifier.predict(h_test)
-        #predicted = classifier.predict(self.test_pca)
-        #predicted = fourier_approx_svm.predict(self.test_pca)
-
-
+      
         # Now predict the value of the digit on the second half:
 
         # expected = shuffled_labels[:,n_samples/2:40000].flatten()
@@ -295,18 +255,6 @@ class RidgeRegression:
     def run_PCA(self,method='SGD'):
         w_mat = np.zeros((self.label_cnt,self.k+1))   # 10,50/ 51 with intercept
         # # get intial square error
-        # y_hat = np.empty((self.label_cnt,self.train_count))  # 10,60000
-        # y_hat = np.dot(w_mat,self.train_pca.T)   #[10,50] * [50,60000]
-        
-        # y_true = self.get_y_true(np.asarray(self.train_label))
-        # self.sqrt_loss_list.append(self.square_loss(y_true,y_hat,w_mat))
-        # self.PJ_sqrt_loss_list.append(self.square_loss(y_true,y_hat,w_mat))
-
-        # test_y_hat =  np.empty((1,self.test_count))  # 10,10000
-        # test_y_hat = np.dot(w_mat,self.test_pca.T)   #[10,50] * [50,60000]
-        # test_y_true = self.get_y_true(np.asarray(self.test_label))
-        # self.test_sqrt_loss_list.append(self.square_loss(test_y_true,test_y_hat,w_mat))
-        # self.test_PJ_sqrt_loss_list.append(self.square_loss(test_y_true,test_y_hat,w_mat))
 
         # loop through epochs
         for ep in range(0,self.epoch):
@@ -316,9 +264,7 @@ class RidgeRegression:
             seq = np.arange(self.train_count)
             np.random.shuffle(seq)  # random seq of 60000
             shuffled_images = self.train_pca[seq].reshape((self.train_count,self.n_comp))
-            # print("shuffled images shape",shuffled_images.shape)
             shuffled_labels = np.asarray(self.train_label)[seq] # a 1d array of 60000
-            # print(" shuffled_labels",shuffled_labels[:5])
             shuffled_label_mat = self.get_y_true(shuffled_labels)  # get 10,60000 matrix
             # print("shuffled_label_mat",shuffled_label_mat[:,:5])
             # call train_linear_classifier
@@ -402,7 +348,7 @@ class RidgeRegression:
             sl +=lsl*lsl
             pjsls = train_labels_mat[hot_index,count]-PJ_y_hat[hot_index,count]
             pj_sl+=pjsls*pjsls
-            # lc =  y_est[:,count] - train_labels[0:count]
+
             if count % 100 == 0:
                 # print("square loss, count",sl/(count+1), count)
                 # print("average square loss, train label, y_hat, count",math.sqrt(np.sum(l**2)/(count+1)), train_labels_mat[:,count], y_hat[:,count], count)
@@ -433,16 +379,13 @@ class RidgeRegression:
         for count in range(0,self.test_count):
             # print("calculating random fourier at testing image %d"%count)
             h = self.random_fourier(self.test_pca[count,:])
-            # h=self.test_pca[count,:] # [,50]
-            # h = self.rbf.fit_transform(self.test_pca[count,:])
+           
             h = np.expand_dims(h,axis=0)
             h = np.hstack((np.ones((h.shape[0], 1)), h)) # x_0 is always 1
             y_hat[:,count]=np.dot(w_mat,h.T)[:,0]   #  product is [10,1]
             PJ_y_hat[:,count]=np.dot(PJ_w_mat,h.T)[:,0]    # [10,30000] * [30000,1]
             y_est = np.argmax(y_hat[:,count])
           
-            # hot_index = self.test_label[count]
-            # print("y_est,hot_index",y_est,hot_index)
             if y_est == self.test_label[count]:
                 right_class+=1.0
             if count % 100 == 0:
@@ -643,10 +586,7 @@ class RidgeRegression:
                 # update alpha_i,   [10,1]
                 a_mat[:,count] = a_mat[:,count] + gamma2*delta_ai
                 # delta_w[i,:] = delta_w[i,:] + 1/float(b)*1/float(self.lamda) * np.dot(h,delta_ai[i])
-                # delta w [10,30000]
-                # for i in range(0,self.label_cnt):
-                #     delta_w[i,:] = delta_w[i,:] + 1/float(b)*1/float(self.lamda) * np.dot(h,delta_ai[i])
-                # update w
+
 
             # delta_ai_mat * H--->10,100 * 100,30000 = 10,30000
             w_mat = w_mat + gamma2*1/float(self.lamda) * np.dot(delta_ai_mat,H)
@@ -666,8 +606,6 @@ class RidgeRegression:
         self.PJ_sqrt_loss_list.append(self.square_loss(train_labels_mat,PJ_y_hat,PJ_w_mat))
         # self.classification_loss_list.append(self.zero_one_loss(train_labels,y_hat,self.train_count))
         self.PJ_classification_loss_list.append(self.zero_one_loss(train_labels,PJ_y_hat,self.train_count))
-        # self.sqrt_loss_list.append(sl/(self.train_count))
-        # self.PJ_sqrt_loss_list.append(pj_sl/(self.train_count))
         self.classification_loss_list.append(1-right_class/self.train_count)
 
         self.sdca_g_loss_list.append(self.dual_loss(train_labels_mat,w_mat,a_mat))
